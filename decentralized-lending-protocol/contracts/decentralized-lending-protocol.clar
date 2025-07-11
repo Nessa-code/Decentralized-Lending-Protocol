@@ -36,6 +36,11 @@
   }
 )
 
+;; Helper functions
+(define-private (min-uint (a uint) (b uint))
+  (if (< a b) a b)
+)
+
 ;; Read-only functions
 (define-read-only (get-user-collateral (user principal))
   (default-to u0 (map-get? user-collateral user))
@@ -140,7 +145,7 @@
 (define-public (repay (amount uint))
   (let (
     (current-borrowed (get-user-borrowed tx-sender))
-    (repay-amount (min amount current-borrowed))
+    (repay-amount (min-uint amount current-borrowed))
     (new-borrowed (- current-borrowed repay-amount))
   )
     (asserts! (> amount u0) ERR_INVALID_AMOUNT)
