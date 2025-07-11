@@ -135,7 +135,7 @@
     (try! (as-contract (stx-transfer? amount tx-sender tx-sender)))
     
     (map-set user-borrowed tx-sender new-borrowed)
-    (map-set user-last-update tx-sender block-height)
+    (map-set user-last-update tx-sender stacks-block-height)
     (var-set total-borrowed (+ (var-get total-borrowed) amount))
     
     (ok new-borrowed)
@@ -162,14 +162,14 @@
 
 (define-public (liquidate (user principal) (repay-amount uint))
   (let (
-    (user-borrowed (get-user-borrowed user))
-    (user-collateral (get-user-collateral user))
+    (borrowed-amount (get-user-borrowed user))
+    (collateral-amount (get-user-collateral user))
     (collateral-to-seize (/ (* repay-amount (var-get liquidation-bonus)) u100))
   )
     (asserts! (can-liquidate user) ERR_LIQUIDATION_NOT_ALLOWED)
     (asserts! (> repay-amount u0) ERR_INVALID_AMOUNT)
-    (asserts! (<= repay-amount user-borrowed) ERR_INVALID_AMOUNT)
-    (asserts! (<= collateral-to-seize user-collateral) ERR_INSUFFICIENT_COLLATERAL)
+    (asserts! (<= repay-amount borrowed-amount) ERR_INVALID_AMOUNT)
+    (asserts! (<= collateral-to-seize collateral-amount) ERR_INSUFFICIENT_COLLATERAL)
     
     ;; Repay debt
     (try! (stx-transfer? repay-amount tx-sender (as-contract tx-sender)))
@@ -178,8 +178,8 @@
     (try! (as-contract (stx-transfer? collateral-to-seize tx-sender tx-sender)))
     
     ;; Update user balances
-    (map-set user-borrowed user (- user-borrowed repay-amount))
-    (map-set user-collateral user (- user-collateral collateral-to-seize))
+    (map-set user-borrowed user (- borrowed-amount repay-amount))
+    (map-set user-collateral user (- collateral-amount collateral-to-seize))
     
     ;; Update protocol totals
     (var-set total-borrowed (- (var-get total-borrowed) repay-amount))
